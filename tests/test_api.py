@@ -34,6 +34,18 @@ def test_company_detail():
     assert client.get("/companies/XYZ").status_code == 404
 
 
+def test_rankings_overall():
+    r = client.get("/rankings")
+    assert r.status_code == 200
+    assert r.json()["companies"][0]["ticker"] == "TCS" and r.json()["count"] == 10
+
+
+def test_every_get_endpoint_without_params():
+    for path in ["/", "/health", "/companies", "/rankings", "/emissions", "/rubric", "/insights",
+                 "/companies/TCS"]:
+        assert client.get(path).status_code == 200, path
+
+
 def test_rankings_by_criterion():
     b = client.get("/rankings", params={"criterion": "Gas-wise breakdown"}).json()
     assert [r["points"] for r in b["rankings"]][:3] == [10, 10, 10]

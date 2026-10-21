@@ -132,7 +132,7 @@ def company(ticker: str):
 @app.get("/rankings", tags=["Scorecard"], summary="Rank companies overall or on one criterion")
 def rankings(criterion: str | None = Query(None, description=f"One of: {', '.join(CRITERIA)}")):
     if criterion is None:
-        return companies()
+        return companies(sector=None, grade=None)
     if criterion not in MAX_POINTS:
         raise HTTPException(400, f"Unknown criterion. Valid: {CRITERIA}")
     rows = []
