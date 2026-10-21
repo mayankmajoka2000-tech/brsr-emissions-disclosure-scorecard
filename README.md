@@ -54,6 +54,28 @@ It scores **disclosure quality, not emissions performance**: a heavy emitter can
    replacing grid power while fleets, generators and refrigerants grow. HDFC Bank attributes its rise to
    high-GWP fire-suppression agents.
 
+## API
+
+The scorecard is also a FastAPI service (`api/main.py`, interactive docs at `/docs`).
+
+| Endpoint | Returns |
+|---|---|
+| `GET /companies?sector=&grade=` | All companies with score, grade and rank |
+| `GET /companies/{ticker}` | Full record: Scope 1/2/3 with YoY, intensity, assurer, target, score breakdown, source link |
+| `GET /rankings?criterion=` | Ranking overall or on one criterion (e.g. `Gas-wise breakdown`) |
+| `GET /emissions?sort_by=` | Reported emissions and each company's share of the sample total |
+| `GET /rubric` | The 9 criteria and points per level |
+| `GET /insights` | Sample-wide findings computed live from the data |
+| `POST /score` | Score any other company's BRSR with the same rubric and see where it would rank |
+
+```bash
+pip install -r requirements.txt
+uvicorn api.main:app --reload        # http://127.0.0.1:8000/docs
+pytest -q                            # 10 tests
+```
+
+Deploy: `render.yaml` (Render free tier) or `Dockerfile`.
+
 ## Scoring rubric (100 points)
 
 | Criterion | Points | Full marks when |
@@ -91,7 +113,7 @@ pip install pandas openpyxl
 python build_scorecard.py
 ```
 
-Figures in `data/brsr_fy26_ghg.csv`; criterion levels and rationale in `build_scorecard.py` (`ASSESSMENT`).
+Figures in `data/brsr_fy26_ghg.csv`; rubric, criterion levels and rationale in `scoring.py`.
 
 ## Limitations
 

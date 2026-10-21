@@ -25,63 +25,7 @@ ROOT = Path(__file__).parent
 DATA = pd.read_csv(ROOT / "data" / "brsr_fy26_ghg.csv")
 OUT = ROOT / "output" / "BRSR_Scope1_2_Disclosure_Scorecard_FY26.xlsx"
 
-# --------------------------------------------------------------------------- rubric
-# (criterion, max, description, [(level, points), ...])
-RUBRIC = [
-    ("Absolute Scope 1 & 2", 15,
-     "Scope 1 and Scope 2 reported in tCO2e for current and prior year at usable precision",
-     [("Full", 15), ("Rounded", 12), ("Partial", 7), ("Missing", 0)]),
-    ("Gas-wise breakdown", 10,
-     "Break-up into CO2, CH4, N2O, HFCs etc., as the BRSR format requests 'if available'",
-     [("Full", 10), ("Partial", 5), ("None", 0)]),
-    ("Intensity metrics", 15,
-     "Per rupee of turnover, PPP-adjusted, and physical-output intensity (5 points each)",
-     [("All three", 15), ("Two", 10), ("One", 5), ("None", 0)]),
-    ("Scope 2 method", 10,
-     "States market- vs location-based; full marks when both figures are given",
-     [("Both", 10), ("One stated", 5), ("Not stated", 0)]),
-    ("Methodology & factors", 10,
-     "Names the standard (GHG Protocol / ISO 14064 / IPCC) and emission-factor sources",
-     [("Stated", 10), ("Referenced elsewhere", 5), ("Not stated", 0)]),
-    ("External assurance", 15,
-     "Independent assurance of the GHG figures and its level",
-     [("Reasonable", 15), ("Limited", 8), ("None", 0)]),
-    ("Boundary clarity", 5,
-     "Clear organisational boundary; consolidated coverage scores higher",
-     [("Consolidated", 5), ("Standalone", 3), ("Unclear", 0)]),
-    ("Scope 3 (leadership)", 10,
-     "Voluntary Scope 3 disclosure; category-level split scores higher",
-     [("Category breakdown", 10), ("Total only", 6), ("Not disclosed", 0)]),
-    ("Reduction target", 10,
-     "Science-based target, or at least a dated net-zero / neutrality commitment",
-     [("SBTi", 10), ("Dated net zero", 6), ("None found", 0)]),
-]
-CRITERIA = [r[0] for r in RUBRIC]
-
-# --------------------------------------------------------------------------- assessment
-# level per criterion (order = CRITERIA), plus one-line rationale
-ASSESSMENT = {
-    "Reliance Industries": (["Full", "Full", "All three", "Both", "Stated", "Reasonable", "Standalone", "Not disclosed", "Dated net zero"],
-        "Best-in-class gas split and dual Scope 2; Scope 3 table left without values."),
-    "Tata Consultancy Services": (["Full", "Full", "All three", "Both", "Stated", "Reasonable", "Consolidated", "Category breakdown", "SBTi"],
-        "Complete on every criterion: gas split, factor sources, 7-category Scope 3, 1.5C SBTi target."),
-    "Infosys": (["Full", "None", "All three", "Both", "Stated", "Reasonable", "Standalone", "Total only", "Dated net zero"],
-        "Strong, but gas split and Scope 3 categories pushed to the ESG Databook rather than the BRSR."),
-    "HDFC Bank": (["Full", "Full", "All three", "One stated", "Stated", "Reasonable", "Standalone", "Total only", "Dated net zero"],
-        "Detailed gas split and factors; no location-based Scope 2; financed emissions absent."),
-    "ITC": (["Full", "None", "All three", "Both", "Stated", "Reasonable", "Standalone", "Total only", "Dated net zero"],
-        "ISO 14064 inventory with dual Scope 2; no gas split; kilotonne precision."),
-    "NTPC": (["Full", "None", "All three", "Not stated", "Not stated", "Reasonable", "Standalone", "Total only", "None found"],
-        "India's largest emitter: figures assured but no method, Scope 2 basis or reduction target."),
-    "UltraTech Cement": (["Full", "None", "All three", "Not stated", "Not stated", "Reasonable", "Standalone", "Total only", "SBTi"],
-        "SBTi-validated targets, but BRSR omits methodology and Scope 2 basis."),
-    "Larsen & Toubro": (["Full", "None", "Two", "Not stated", "Referenced elsewhere", "Reasonable", "Standalone", "Total only", "Dated net zero"],
-        "No physical intensity, gas split or Scope 2 basis; Scope 3 explicitly unassured."),
-    "Mahindra & Mahindra": (["Full", "None", "All three", "One stated", "Stated", "Reasonable", "Standalone", "Total only", "SBTi"],
-        "GHG Protocol + ISO 14064-3 verified, segment intensities; no gas split."),
-    "Tata Steel": (["Rounded", "None", "All three", "One stated", "Stated", "Reasonable", "Consolidated", "Total only", "Dated net zero"],
-        "Only company giving standalone and consolidated; figures rounded to whole Mt."),
-}
+from scoring import ASSESSMENT, CRITERIA, RUBRIC  # noqa: E402
 
 # --------------------------------------------------------------------------- styles
 FONT = "Arial"
