@@ -81,3 +81,26 @@ def test_score_rejects_bad_level():
     levels = dict(zip(CRITERIA, ["Full"] * len(CRITERIA)))
     assert client.post("/score", json={"levels": levels}).status_code == 422
     assert client.post("/score", json={"levels": {"Gas-wise breakdown": "Full"}}).status_code == 422
+
+
+def test_social_endpoints():
+    for path in ["/social/companies", "/social/companies/TCS", "/social/rubric", "/social/insights"]:
+        assert client.get(path).status_code == 200, path
+    b = client.get("/social/companies").json()
+    assert b["count"] == 10 and b["companies"][0]["ticker"] == "TCS"
+    assert client.get("/social/rubric").json()["total_max"] == 100
+
+
+def test_social_metrics_match_reports():
+    r = client.get("/social/companies/RELIANCE").json()
+    assert r["metrics"]["women_share_employees"] == round(2377 / 34066, 4)
+    assert r["metrics"]["fatalities"] == 3
+    lt = client.get("/social/companies/LT").json()
+    assert lt["metrics"]["fatalities"] == 30 and lt["breakdown"]["fatalities"] == 0
+    assert abs(sum(lt["breakdown"].values()) - lt["score"]) < 0.11
+
+
+def test_social_insights():
+    b = client.get("/social/insights").json()
+    assert b["companies_meeting_40pct_women_on_board"] == []
+    assert b["total_fatalities"] == 46  # 30 + 5 + 4 + 3 + 3 + 1

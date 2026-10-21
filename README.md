@@ -1,4 +1,4 @@
-# BRSR Scope 1 & 2 Disclosure Scorecard: 10 Nifty 50 Companies (FY2025-26)
+# BRSR Emissions & Social Scorecard: 10 Nifty 50 Companies (FY2025-26)
 
 How well do India's largest listed companies disclose their greenhouse-gas emissions in their SEBI
 **Business Responsibility & Sustainability Reports**? This project scores the FY2025-26 BRSR of
@@ -77,6 +77,53 @@ pytest -q                            # 10 tests
 ```
 
 Deploy: `render.yaml` (Render free tier) or `Dockerfile`.
+
+## Social module: BRSR social performance scorer
+
+`/social/*` scores the **social** sections of the same 10 FY2025-26 BRSRs: workforce gender, women on the board
+and in KMP, wages paid to women, parental-leave retention, turnover, well-being spend and safety. All 10 disclose
+these BRSR Core items with reasonable assurance, so a completeness score would not separate them. This module
+scores **performance on the disclosed numbers** against fixed benchmarks, such as 40% women on the board
+(EU Directive 2022/2381) and zero fatalities.
+
+| Rank | Company | Score | Grade |
+|---|---|---|---|
+| 1 | Tata Consultancy Services | 90.4 | A |
+| 2 | Infosys | 81.9 | A |
+| 3 | Mahindra & Mahindra | 76.7 | B |
+| 4 | HDFC Bank | 73.6 | B |
+| 5 | NTPC | 71.0 | B |
+| 6 | ITC | 64.8 | C |
+| 7 | Reliance Industries | 58.2 | C |
+| 8 | UltraTech Cement | 56.0 | C |
+| 9 | Tata Steel | 39.2 | D |
+| 10 | Larsen & Toubro | 38.2 | D |
+
+| Pillar | Points | Measures |
+|---|---|---|
+| Gender equity | 50 | Women in workforce (10), on board (10), in KMP (5), pay-share ratio (10), female retention after parental leave (10), female vs male turnover (5) |
+| Well-being | 10 | Well-being spend as % of revenue |
+| Safety | 40 | LTIFR (15), fatalities incl. contract workers (25) |
+
+**What it shows**
+- Women are 31% of the 1.34 million permanent employees in the sample, but only 7-18% outside IT and banking.
+- **All 10 pay women a smaller share of wages than their share of jobs.** At ITC women hold 18% of permanent
+  roles but get 11% of wages (a pay-share ratio of 0.61).
+- None of the 10 has 40% women on its board, and 7 of 10 have no woman among key managerial personnel.
+- At 7 of the 9 companies that report both, women are less likely than men to still be employed a year after
+  parental leave.
+- The 10 companies reported 46 work-related deaths. 30 were at L&T (29 of them workers), which is why it ranks
+  last despite good injury rates.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /social/companies` | Scores, grades, ranks and pillar scores |
+| `GET /social/companies/{ticker}` | Metrics, reported values, score breakdown, boundary notes, source |
+| `GET /social/rubric` | Criteria and benchmarks |
+| `GET /social/insights` | Sample-wide findings computed from the data |
+
+Boundaries differ by company (standalone vs consolidated; some have no "workers" category). Each record's
+`boundary_note` says which. Raw values are in `data/brsr_fy26_social.csv`.
 
 ## Scoring rubric (100 points)
 

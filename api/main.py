@@ -21,10 +21,10 @@ from scoring import CRITERIA, LEVEL_POINTS, MAX_POINTS, RUBRIC, TOTAL_MAX, compa
 ROOT = Path(__file__).resolve().parents[1]
 DATA = pd.read_csv(ROOT / "data" / "brsr_fy26_ghg.csv")
 SCORES = company_scores()
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 app = FastAPI(
-    title="BRSR Emissions Disclosure API",
+    title="BRSR Emissions & Social Disclosure API",
     version=VERSION,
     description=(
         "Scope 1, 2 and 3 emissions and disclosure-quality scores from the FY2025-26 SEBI Business "
@@ -98,7 +98,8 @@ def root():
         "name": "BRSR Emissions Disclosure API", "version": VERSION, "status": "operational",
         "docs": "/docs", "reporting_year": "FY2025-26", "companies": len(RECORDS),
         "endpoints": ["/companies", "/companies/{ticker}", "/rankings", "/emissions",
-                      "/rubric", "/insights", "/score"],
+                      "/rubric", "/insights", "/score", "/social/companies", "/social/companies/{ticker}",
+                      "/social/rubric", "/social/insights"],
     }
 
 
@@ -214,3 +215,85 @@ def score(req: ScoreRequest):
     return {"company": req.company, **res, "max": TOTAL_MAX,
             "would_rank": sum(1 for s in SCORES.values() if s["total"] > res["total"]) + 1,
             "scores_higher_than": f"{beats} of {len(SCORES)} sample companies"}
+
+
+# ======================================================================== social module
+from scoring_social import RUBRIC as SOCIAL_RUBRIC  # noqa: E402
+from scoring_social import TOTAL_MAX as SOCIAL_MAX  # noqa: E402
+from scoring_social import metrics as social_metrics  # noqa: E402
+from scoring_social import score as social_score  # noqa: E402
+
+SOCIAL = {}
+for _row in pd.read_csv(ROOT / "data" / "brsr_fy26_social.csv", keep_default_na=False).to_dict("records"):
+    _m = social_metrics(_row)
+    SOCIAL[_row["ticker"].upper()] = {"metrics": _m, "score": social_score(_m), "boundary_note": _row["boundary_note"],
+                                      "raw": {k: _clean(v) if v != "" else None for k, v in _row.items()
+                                              if k not in ("ticker", "boundary_note")}}
+_tot = sorted((v["score"]["total"] for v in SOCIAL.values()), reverse=True)
+for _v in SOCIAL.values():
+    _v["rank"] = _tot.index(_v["score"]["total"]) + 1
+SOCIAL_SOURCE = ("Company BRSR FY2025-26: Section A Q20-22 (workforce, board, turnover), Principle 3 EI 1, 5, 11 "
+                 "(well-being spend, parental leave, safety), Principle 5 EI 3, 7 (wages to women, POSH)")
+
+
+def _social_grade(t):
+    return "A" if t >= 80 else "B" if t >= 65 else "C" if t >= 50 else "D"
+
+
+@app.get("/social/companies", tags=["Social"], summary="Social performance scores for all 10 companies")
+def social_companies():
+    rows = []
+    for t, v in SOCIAL.items():
+        rec = RECORDS[t]
+        rows.append({"ticker": t, "company": rec["company"], "sector": rec["sector"],
+                     "score": v["score"]["total"], "grade": _social_grade(v["score"]["total"]), "rank": v["rank"],
+                     "pillars": {p: x["score"] for p, x in v["score"]["pillars"].items()}})
+    rows.sort(key=lambda r: (r["rank"], r["company"]))
+    return {"max": SOCIAL_MAX, "count": len(rows), "companies": rows,
+            "note": "Scores performance on disclosed social metrics against fixed benchmarks (see /social/rubric)."}
+
+
+@app.get("/social/companies/{ticker}", tags=["Social"], summary="One company's social metrics and score breakdown")
+def social_company(ticker: str):
+    t = _get(ticker)
+    v = SOCIAL[t]
+    return {"ticker": t, "company": RECORDS[t]["company"], "sector": RECORDS[t]["sector"],
+            "score": v["score"]["total"], "max": SOCIAL_MAX, "grade": _social_grade(v["score"]["total"]),
+            "rank": v["rank"], "pillars": v["score"]["pillars"], "breakdown": v["score"]["breakdown"],
+            "metrics": v["metrics"], "reported_values": v["raw"], "boundary_note": v["boundary_note"],
+            "source": {"report_url": RECORDS[t]["source"]["report_url"], "section": SOCIAL_SOURCE}}
+
+
+@app.get("/social/rubric", tags=["Social"], summary="Social scoring criteria and benchmarks")
+def social_rubric():
+    return {"total_max": SOCIAL_MAX,
+            "grades": {"A": ">= 80", "B": "65-79", "C": "50-64", "D": "< 50"},
+            "why_performance_not_disclosure": ("All 10 companies disclose these BRSR Core items with reasonable "
+                                               "assurance, so a completeness score would not separate them."),
+            "criteria": [{"criterion": k, "pillar": p, "max_points": m, "measures": d, "benchmark": b}
+                         for k, p, m, d, b in SOCIAL_RUBRIC]}
+
+
+@app.get("/social/insights", tags=["Social"], summary="Sample-wide social findings")
+def social_insights():
+    m = {t: v["metrics"] for t, v in SOCIAL.items()}
+    name = lambda t: RECORDS[t]["company"]  # noqa: E731
+    below_parity = [name(t) for t, x in m.items() if x["pay_share_ratio"] < 1]
+    tot_women = sum(SOCIAL[t]["raw"]["perm_women"] for t in m)
+    tot_emp = sum(SOCIAL[t]["raw"]["perm_employees"] for t in m)
+    return {
+        "women_share_all_permanent_employees": round(tot_women / tot_emp, 4),
+        "women_share_by_company": dict(sorted(((name(t), x["women_share_employees"]) for t, x in m.items()),
+                                              key=lambda kv: -kv[1])),
+        "companies_meeting_40pct_women_on_board": [name(t) for t, x in m.items() if x["women_share_board"] >= 0.4],
+        "companies_with_no_women_in_kmp": [name(t) for t, x in m.items() if not x["women_in_kmp"]],
+        "pay_share_ratio": {"definition": "women's share of wages / women's share of employees; below 1 suggests women "
+                                          "are concentrated in lower-paid roles (wage and headcount bases can differ slightly by company)",
+                            "companies_below_1": f"{len(below_parity)} of {len(m)}",
+                            "lowest": min(((name(t), x["pay_share_ratio"]) for t, x in m.items()), key=lambda kv: kv[1])},
+        "female_retention_below_male": [name(t) for t, x in m.items()
+                                         if x["male_retention"] is not None and x["female_retention"] < x["male_retention"]],
+        "total_fatalities": sum(x["fatalities"] for x in m.values()),
+        "fatalities_by_company": {name(t): x["fatalities"] for t, x in sorted(m.items(), key=lambda kv: -kv[1]["fatalities"])
+                                  if x["fatalities"] > 0},
+    }
