@@ -7,6 +7,8 @@ methodology and assurance of Scope 1 and 2 disclosure.
 
 It scores **disclosure quality, not emissions performance**: a heavy emitter can score well if it reports clearly.
 
+🚀 **Live API:** https://brsr-emissions-api.onrender.com · 📚 **Docs:** https://brsr-emissions-api.onrender.com/docs
+
 📊 **Workbook:** [`output/BRSR_Scope1_2_Disclosure_Scorecard_FY26.xlsx`](output/BRSR_Scope1_2_Disclosure_Scorecard_FY26.xlsx)
 📁 **Data:** [`data/brsr_fy26_ghg.csv`](data/brsr_fy26_ghg.csv), with a source link for every company
 
